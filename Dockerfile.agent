@@ -1,0 +1,7 @@
+#
+# Dockerfile for building Mesos agent
+#
+FROM mesos-master-gpu:latest
+MAINTAINER Yubo Li <liyubobj@cn.ibm.com>
+
+ENTRYPOINT ["mesos-agent"]

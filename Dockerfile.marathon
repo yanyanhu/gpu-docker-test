@@ -1,0 +1,45 @@
+#
+# Marathon build from sources.
+#
+FROM mesos-master-gpu:latest
+MAINTAINER Yubo Li <liyubobj@cn.ibm.com>
+
+WORKDIR /marathon
+
+# Marathon branch used for compile
+ARG MARA_VERSION=nvidia-gpu
+
+# Install openjdk-8
+RUN apt-get update && \
+    apt-get install -y software-properties-common unzip && \
+    add-apt-repository ppa:openjdk-r/ppa && \
+    apt-get update && \
+    apt-get install -y openjdk-8-jdk 
+
+ENV JAVA_HOME /usr/lib/jvm/java-1.8.0-openjdk-amd64
+ENV PATH $JAVA_HOME/bin:$PATH
+ENV CLASSPATH .:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar
+
+RUN echo "deb http://dl.bintray.com/sbt/debian /" | tee -a /etc/apt/sources.list.d/sbt.list && \
+    apt-get update && \
+    apt-get install --no-install-recommends -y --force-yes sbt && \
+    apt-get clean
+
+# Build marathon from source
+RUN git clone https://github.com/liyubobj/marathon.git && \
+    cd marathon && git checkout ${MARA_VERSION} && cd .. && \
+    mv marathon/* ./ && \
+    rm -rf marathon
+
+# Copy mesos.jar to ivy cache
+RUN mkdir -p /root/.ivy2/cache/org.apache.mesos/mesos/jars && \
+    cp /usr/local/lib/java/mesos-1.1.0.jar /root/.ivy2/cache/org.apache.mesos/mesos/jars/mesos-1.0.0-rc1.jar
+
+# Compile marathon
+RUN sbt assembly && \
+    mv $(find target -name 'marathon-assembly-*.jar' | sort | tail -1) ./ && \
+    rm -rf target/* ~/.sbt ~/.ivy2 && \
+    mv marathon-assembly-*.jar target && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+ENTRYPOINT ["./bin/start"]
