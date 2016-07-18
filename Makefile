@@ -1,5 +1,4 @@
-ZK_BASE_IMAGE_REPO=mesoscloud
-ZK_BASE_IMAGE=zookeeper
+ZK=mesoscloud/zookeeper
 ZK_TAG=3.4.6-ubuntu-14.04
 
 MMASTER=mesos-master-gpu
@@ -11,10 +10,21 @@ MARATHON_TAG=latest
 
 LOCAL_IP=127.0.0.1
 
-all: pull-zk build-master build-agent build-marathon
+build: pull-zk build-master build-agent build-marathon
+
+run-cluster: run-zookeeper-local run-master-local run-agent-local run-marathon-local
+
+kill-cluster:
+	docker rm -f marathon slave-mesos master-mesos zookeeper
+
+run-task:
+	curl -X POST -H "Content-type: application/json" "${LOCAL_IP}:8080/v2/apps" -d@gpu-task.json
+
+kill-task:
+	curl -X DELETE ${LOCAL_IP}:8080/v2/apps/gpu-task
 
 pull-zk:
-	docker pull ${ZK_BASE_IMAGE_REPO}/${ZK_BASE_IMAGE}:${ZK_TAG}
+	docker pull ${ZK}:${ZK_TAG}
 
 build-master:
 	docker build -t ${MMASTER}:${MESOS_TAG} -f Dockerfile.master ./
@@ -31,54 +41,44 @@ run-zookeeper-local:
 	-e SERVERS=${LOCAL_IP} \
 	--name=zookeeper \
 	--net=host \
-	--volume=/tmp/zookeeper:/tmp/zookeeper \
-	--restart=always \
-	${REPO}/${ZK_BASE_IMAGE}:${ZK_TAG}
+	${ZK}:${ZK_TAG}
 
 run-master-local:
 	docker run -idt \
-	--volume /var/lib/mesos:/var/lib/mesos \
-	--volume /var/log/mesos:/var/log/mesos \
 	--net=host \
-	--publish=5050:5050 \
-	--publish=5051:5051 \
 	--name master-mesos \
-	${REPO}/${MMASTER}:${MESOS_TAG} \
-        --log_dir=/var/log/mesos \
-        --work_dir=/var/lib/mesos \
-	--ip=${LOCAL_IP} \
+	${MMASTER}:${MESOS_TAG} \
+	--log_dir=/var/log/mesos \
+	--work_dir=/var/lib/mesos \
+	--ip=0.0.0.0 \
+	--advertise_ip=${LOCAL_IP} \
+	--hostname_lookup=false \
 	--quorum=1 \
-	--zk=zk://${LOCAL_IP}:2181/mesos 
+	--zk=zk://${LOCAL_IP}:2181/mesos
 
-run-slave-local:	
-	docker run -idt \
+run-agent-local:	
+	nvidia-docker run -idt \
 	--privileged=true \
-	--volume /var/run/mesos:/var/run/mesos \
-	--volume /var/log/mesos:/var/log/mesos \
-	--volume /var/lib/mesos:/var/lib/mesos \
-	--volume /var/run/docker.sock:/var/run/docker.sock \
+	--volume /var/run/docker.sock:/var/run/docker.sock:ro \
+	--volume /usr/bin/docker:/usr/bin/docker:ro \
 	--net=host \
-	--publish=5051:5051 \
 	--name slave-mesos \
 	-e GLOG_v=1 \
-	${REPO}/${MSLAVE}:${MESOS_TAG} \
+	${MSLAVE}:${MESOS_TAG} \
 	--master=zk://${LOCAL_IP}:2181/mesos \
 	--ip=${LOCAL_IP} \
+	--hostname_lookup=false \
 	--work_dir=/var/run/mesos \
 	--log_dir=/var/log/mesos \
 	--containerizers=docker,mesos \
 	--executor_registration_timeout=300secs \
-	--isolation=cgroups/cpu,cgroups/mem
-	#--isolation=cgroups/cpu,cgroups/mem,cgroups/devices,gpu/nvidia
-	#--modules=file:///opt/gpu-hook/gpu_module_hook.json \
-	#--hooks=org_apache_mesos_gpu_TestHook
+	--isolation=cgroups/cpu,cgroups/mem,cgroups/devices,gpu/nvidia
 
 run-marathon-local:
 	docker run -idt \
-	--volume /var/log/marathon:/var/log/marathon \
-	--net=host --publish=8080:8080 \
+	--net=host \
 	--name marathon \
-	${REPO}/${MARATHON}:${MARATHON_TAG} \
+	${MARATHON}:${MARATHON_TAG} \
 	--zk zk://${LOCAL_IP}:2181/marathon \
 	--task_launch_timeout 300000 \
 	--master zk://${LOCAL_IP}:2181/mesos \
