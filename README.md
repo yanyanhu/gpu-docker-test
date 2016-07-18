@@ -10,6 +10,8 @@ root@ubuntu-x86-gpu:~/liyubo/liyubobj/gpu-docker-test# ps -elf | grep nvidia-doc
 5 S root      2646     1  0  80   0 - 16441 poll_s 04:32 pts/1    00:00:00 sudo -b nohup nvidia-docker-plugin
 4 S root      2647  2646  0  80   0 - 8507711 ep_pol 04:32 pts/1  00:00:00 nvidia-docker-plugin
 ```
+* Make sure `curl` and `make` commands available in your testing machine.
+
 ## Testing Mesos/Marathon with GPU
 
 * Pull/Build zookeeper/Mesos/Marathon images
@@ -68,7 +70,7 @@ root@ubuntu-x86-gpu:~/liyubo/liyubobj/gpu-docker-test# docker inspect e1cf4079e8
 ......
 ]
 ```
-In current, we can not run `nvidia-smi` directly in the docker container because GPU driver injection has not been`u implemented for docker container. Will update once it is completed.
+In current, we can not run `nvidia-smi` directly in the docker container because GPU driver volume injection has not been implemented for docker container. Will update once it is completed.
 
 **Kill task**
 ```
