@@ -4,4 +4,9 @@
 FROM mesos-master-gpu:latest
 MAINTAINER Yubo Li <liyubobj@cn.ibm.com>
 
+# Install docker dependencies. Required when docker verison > 1.10
+RUN apt-get update && \
+    apt-get install -y libdevmapper1.02.1 libltdl7 libsystemd-journal0 && \
+    apt-get clean
+
 ENTRYPOINT ["mesos-agent"]
