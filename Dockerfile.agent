@@ -1,7 +1,7 @@
 #
 # Dockerfile for building Mesos agent
 #
-FROM mesos-master-gpu:latest
+FROM mesos-master-gpu:ppc64le-latest
 MAINTAINER Yubo Li <liyubobj@cn.ibm.com>
 
 # Install docker dependencies. Required when docker verison > 1.10

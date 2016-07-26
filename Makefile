@@ -3,10 +3,10 @@ ZK_TAG=3.4.6-ubuntu-14.04
 
 MMASTER=mesos-master-gpu
 MSLAVE=mesos-agent-gpu
-MESOS_TAG=latest
+MESOS_TAG=ppc64le-latest
 
 MARATHON=marathon-gpu
-MARATHON_TAG=latest
+MARATHON_TAG=ppc64le-latest
 
 LOCAL_IP=127.0.0.1
 
